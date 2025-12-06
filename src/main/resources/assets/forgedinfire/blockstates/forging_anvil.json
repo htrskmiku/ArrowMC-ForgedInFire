@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "forgedinfire:block/forging_anvil",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "forgedinfire:block/forging_anvil",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "forgedinfire:block/forging_anvil"
+    },
+    "facing=west": {
+      "model": "forgedinfire:block/forging_anvil",
+      "y": 90
+    }
+  }
+}

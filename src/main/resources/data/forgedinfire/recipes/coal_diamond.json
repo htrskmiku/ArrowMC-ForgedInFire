@@ -1,0 +1,15 @@
+{
+  "type": "forgedinfire:forging",
+  "ingredients": [
+    {
+      "item": "minecraft:coal"
+    },
+    {
+      "item": "minecraft:coal"
+    }
+  ],
+  "output": {
+    "count": 1,
+    "item": "minecraft:diamond"
+  }
+}
