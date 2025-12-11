@@ -13,9 +13,9 @@ public class ForgingAnvilCraftingEventJS extends PlayerEventJS {
 
     public ForgingAnvilCraftingDataWrapper wrapper;
 
-    public ForgingAnvilCraftingEventJS(Player pPlayer, NonNullList<ItemStack> ingredients,boolean hasRecipe) {
+    public ForgingAnvilCraftingEventJS(Player pPlayer, NonNullList<ItemStack> ingredients,boolean hasRecipe,ItemStack output) {
         super();
-        wrapper = new ForgingAnvilCraftingDataWrapper(pPlayer, ingredients, hasRecipe);
+        wrapper = new ForgingAnvilCraftingDataWrapper(pPlayer, ingredients, hasRecipe,output);
     }
 
     @Override
@@ -31,5 +31,10 @@ public class ForgingAnvilCraftingEventJS extends PlayerEventJS {
     @Info("Return a Collection of ingredient ItemStack(2 input slot).")
     public Collection<ItemStack> getIngredients() {
         return wrapper.getIngredients();
+    }
+
+    @Info("Return the output slot stack.")
+    public ItemStack getOutputStack() {
+        return wrapper.getOutputStack();
     }
 }

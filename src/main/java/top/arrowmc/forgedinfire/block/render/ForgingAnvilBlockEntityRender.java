@@ -11,15 +11,12 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import top.arrowmc.forgedinfire.block.ForgingAnvilBlock;
 import top.arrowmc.forgedinfire.block.entity.ForgingAnvilBlockEntity;
 
 public class ForgingAnvilBlockEntityRender implements BlockEntityRenderer<ForgingAnvilBlockEntity> {

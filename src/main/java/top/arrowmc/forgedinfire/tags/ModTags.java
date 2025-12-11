@@ -14,13 +14,13 @@ public class ModTags {
 
         public static TagKey<Block> tag(String name){
             return TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(ForgedInFire.MODID,name));
-        };
+        }
     }
     public static class Items {
-        public static final TagKey<Item> VARIABLE_MATERIAL = tag("variable_material");
+        public static final TagKey<Item> REINFORCE_MATERIAL = tag("reinforce_material");
 
         public static TagKey<Item> tag(String name){
             return TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(ForgedInFire.MODID,name));
-        };
+        }
     }
 }

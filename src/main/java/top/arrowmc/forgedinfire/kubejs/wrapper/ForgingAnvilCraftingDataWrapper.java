@@ -8,9 +8,10 @@ public class ForgingAnvilCraftingDataWrapper {
     private NonNullList<ItemStack> ingredient;
     private Player player;
     private boolean hasRecipe;
+    private ItemStack outputStack;
 
 
-    public ForgingAnvilCraftingDataWrapper(Player player, NonNullList<ItemStack> ingredients, boolean hasRecipe) {
+    public ForgingAnvilCraftingDataWrapper(Player player, NonNullList<ItemStack> ingredients, boolean hasRecipe,ItemStack outputStack) {
         this.player = player;
         this.ingredient = ingredients;
         this.hasRecipe = hasRecipe;
@@ -27,4 +28,6 @@ public class ForgingAnvilCraftingDataWrapper {
     public boolean hasRecipe() {
         return hasRecipe;
     }
+
+    public ItemStack getOutputStack() {return outputStack;}
 }

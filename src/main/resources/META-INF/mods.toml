@@ -61,3 +61,18 @@ mandatory = true
 versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "kubejs"
+mandatory = true
+versionRange = "any"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "ponder"
+mandatory = true
+versionRange = "any"
+ordering = "NONE"
+side = "BOTH"
+

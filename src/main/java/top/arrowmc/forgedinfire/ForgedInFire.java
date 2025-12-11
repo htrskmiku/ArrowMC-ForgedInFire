@@ -1,20 +1,18 @@
 package top.arrowmc.forgedinfire;
 
 import com.mojang.logging.LogUtils;
+import net.createmod.ponder.foundation.PonderIndex;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.loot.LootTableProvider;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.data.event.GatherDataEvent;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -22,16 +20,17 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+import top.arrowmc.forgedinfire.block.render.DisplayStandBlockEntityRender;
 import top.arrowmc.forgedinfire.block.render.ForgingAnvilBlockEntityRender;
 import top.arrowmc.forgedinfire.datagen.*;
 import top.arrowmc.forgedinfire.datagen.lang.EnUsLangGenerator;
 import top.arrowmc.forgedinfire.datagen.lang.ZhCnLangGenerator;
+import top.arrowmc.forgedinfire.ponder.ModPonder;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -59,31 +58,17 @@ public class ForgedInFire {
     public ForgedInFire() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // Register the commonSetup method for modloading
-        modEventBus.addListener(this::commonSetup);
-
         ModRegister.register(modEventBus);
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
         // Register the item to a creative tab
-        modEventBus.addListener(this::addCreative);
 
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         //noinspection removal
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 
-    private void commonSetup(final FMLCommonSetupEvent event) {
-        // Some common setup code
-
-
-    }
-
-    // Add the example block item to the building blocks tab
-    private void addCreative(BuildCreativeModeTabContentsEvent event) {
-
-    }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
@@ -98,11 +83,13 @@ public class ForgedInFire {
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
             // Some client setup code
+            PonderIndex.addPlugin(new ModPonder());
         }
 
         @SubscribeEvent
         public static void onRegisterEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerBlockEntityRenderer(ModRegister.FORGING_ANVIL_BLOCK_ENTITY.get(), ForgingAnvilBlockEntityRender::new);
+            event.registerBlockEntityRenderer(ModRegister.DISPLAY_STAND_BLOCK_ENTITY.get(), DisplayStandBlockEntityRender::new);
         }
     }
 

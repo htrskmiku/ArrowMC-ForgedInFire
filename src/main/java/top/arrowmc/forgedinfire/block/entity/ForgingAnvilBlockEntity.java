@@ -5,48 +5,42 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.ModLoader;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import top.arrowmc.forgedinfire.Config;
 import top.arrowmc.forgedinfire.ModRegister;
 import top.arrowmc.forgedinfire.ModUtils;
-import top.arrowmc.forgedinfire.event.ForgingAnvilCraftedEvent;
 import top.arrowmc.forgedinfire.kubejs.ForgingAnvilCraftedEventJS;
 import top.arrowmc.forgedinfire.kubejs.ForgingAnvilCraftingEventJS;
 import top.arrowmc.forgedinfire.kubejs.KubeJSIntegration;
+import top.arrowmc.forgedinfire.quality.MaterialQualityManager;
 import top.arrowmc.forgedinfire.recipe.ForgingRecipe;
+import top.arrowmc.forgedinfire.tags.ModTags;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
 
 public class ForgingAnvilBlockEntity extends BlockEntity implements WorldlyContainer {
 
@@ -71,12 +65,15 @@ public class ForgingAnvilBlockEntity extends BlockEntity implements WorldlyConta
 
     private LazyOptional<IItemHandler> lazyItemHandler = LazyOptional.empty();
 
-
     public ForgingAnvilBlockEntity(BlockEntityType<?> pType, BlockPos pPos, BlockState pBlockState) {
         super(pType, pPos, pBlockState);
     }
     public ForgingAnvilBlockEntity(BlockPos worldPosition, BlockState blockState) {
         this(ModRegister.FORGING_ANVIL_BLOCK_ENTITY.get(), worldPosition, blockState);
+    }
+
+    public ItemStackHandler getItemStackHandler() {
+        return itemStackHandler;
     }
 
     public void playerInteract(Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand) {
@@ -97,6 +94,7 @@ public class ForgingAnvilBlockEntity extends BlockEntity implements WorldlyConta
             } else {
                 for (int i = 0; i < 2; i++) {
                     if (itemStackHandler.getStackInSlot(i).isEmpty()) {
+
                         putItemInSlot(pPlayer.getMainHandItem(), pPlayer.isCreative(), i);
                         setChanged();
                         break;
@@ -129,21 +127,117 @@ public class ForgingAnvilBlockEntity extends BlockEntity implements WorldlyConta
         serverlevel.sendParticles(ParticleTypes.FLAME,x,y,z,20,0D,0D,0D,0.2D);
     }
 
+    /**
+     * 处理锻造基材（带NBT合成）
+     * @param pLevel
+     * @return
+     */
+    private boolean processForgingCrafting(Level pLevel) {
+        ItemStack refiningSlotStack = itemStackHandler.getStackInSlot(INGREDIENT_SLOT);
+        ItemStack inputSlotStack = itemStackHandler.getStackInSlot(INPUT_SLOT);
+        if (refiningSlotStack.is(ModTags.Items.REINFORCE_MATERIAL)) {
+            double brokenProbability = getMaterialBrokenProbability(inputSlotStack);
+            double p = pLevel.getRandom().nextDouble();
+            ItemStack output;
+            if (p < brokenProbability) {
+                BlockPos pos = this.getBlockPos();
+                output = new ItemStack(ModRegister.FORGING_SCRAP.get());
+                if (inputSlotStack.hasTag()){
+                    output.setTag(inputSlotStack.getTag());
+                }
+                output.setCount(1);
+                pLevel.playSeededSound(null,pos.getX(),pos.getY(),pos.getZ(),SoundEvents.ITEM_BREAK,SoundSource.BLOCKS,0.3f,1.0f,1);
+            }else {
+                output = inputSlotStack.copy();
+                CompoundTag outputTag = output.getOrCreateTag();
+                ListTag listTag;
+                int refineCounts = 1;
+                if (outputTag.contains("refine_counts")){
+                    refineCounts = outputTag.getInt("refine_counts");
+                    refineCounts ++;
+                    outputTag.putInt("refine_counts",refineCounts);
+                }else {
+                    outputTag.putInt("refine_counts",refineCounts);
+                }
+
+                double materialQuality = MaterialQualityManager.getQuality(refiningSlotStack.getItem());
+                if (materialQuality > 0) {
+                    double quality = 0;
+                    if (outputTag.contains("quality")){
+                        quality = outputTag.getDouble("quality");
+                    }
+                    double a = ((pLevel.getRandom().nextDouble()-0.5) * materialQuality);
+                    quality += a;
+                    if (quality > 1D) {
+                        quality = 1D;
+                    }
+                    if (quality < 0D) {
+                        quality = 0;
+                    }
+                    outputTag.putDouble("quality",quality);
+                }
+
+                if (outputTag.contains("refine_materials")){
+                    listTag = outputTag.getList("refine_materials", Tag.TAG_COMPOUND);
+                    CompoundTag materialTag = new CompoundTag();
+                    materialTag.putString("material",ModUtils.getItemResourceLocation(refiningSlotStack.getItem()));
+                    listTag.add(materialTag);
+                }else {
+                    listTag = new ListTag();
+                    CompoundTag materialTag = new CompoundTag();
+                    materialTag.putString("material",ModUtils.getItemResourceLocation(refiningSlotStack.getItem()));
+                    listTag.add(materialTag);
+                    outputTag.put("refine_materials",listTag);
+                }
+            }
+
+            //output.setTag(outputTag);
+            itemStackHandler.setStackInSlot(OUTPUT_SLOT, output);
+            itemStackHandler.extractItem(INPUT_SLOT, 1, false);
+            itemStackHandler.extractItem(INGREDIENT_SLOT, 1, false);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 处理合成
+     * @param pPlayer
+     * @param pLevel
+     * @return
+     */
     private boolean processCrafting(Player pPlayer,Level pLevel){
-        boolean canCraft = canCraft();
+
+        boolean canRecipeCraft = canCraft();
+        NonNullList<ItemStack> items = NonNullList.withSize(2,ItemStack.EMPTY);
+        for(int i = 0; i < items.size(); i++){
+            items.set(i, itemStackHandler.getStackInSlot(i));
+        }//获取物品Slot List
 
         if(ModUtils.isKubeJSLoaded()){
-            NonNullList<ItemStack> items = NonNullList.withSize(2,ItemStack.EMPTY);
-            for(int i = 0; i < items.size(); i++){
-                items.set(i, itemStackHandler.getStackInSlot(i));
-            }
-            ForgingAnvilCraftingEventJS eventJS = new ForgingAnvilCraftingEventJS(pPlayer,items,canCraft);
+            ItemStack outputStack = itemStackHandler.getStackInSlot(OUTPUT_SLOT);
+            ForgingAnvilCraftingEventJS eventJS = new ForgingAnvilCraftingEventJS(pPlayer,items,canRecipeCraft,outputStack);
             if (KubeJSIntegration.FORGING_ANVIL_CRAFTING_EVENT.hasListeners()){
                 KubeJSIntegration.FORGING_ANVIL_CRAFTING_EVENT.post(eventJS);
             }
+        }//检测KubeJS是否存在
+
+        if (itemStackHandler.getStackInSlot(INPUT_SLOT).is(ModRegister.FORGING_BASE_MATERIAL.get())) {
+            if (processForgingCrafting(pLevel)){
+                ItemStack itemStack = itemStackHandler.getStackInSlot(OUTPUT_SLOT);
+                if (ModUtils.isKubeJSLoaded()){
+                    ForgingAnvilCraftedEventJS eventJS = new ForgingAnvilCraftedEventJS(pPlayer,items,itemStack);
+                    if (KubeJSIntegration.FORGING_ANVIL_CRAFTED_EVENT.hasListeners()){
+                        KubeJSIntegration.FORGING_ANVIL_CRAFTED_EVENT.post(eventJS);
+                    }
+                }
+                return true;
+            }else {
+                return false;
+            }
         }
 
-        if (canCraft()){
+        if (canRecipeCraft){
             Optional<ForgingRecipe> recipeOptional = getCurrentRecipe();
             ItemStack outputStack = recipeOptional.get().getResultItem(null);
             double brokenProbability = recipeOptional.get().getBrokenProbability();
@@ -176,6 +270,7 @@ public class ForgingAnvilBlockEntity extends BlockEntity implements WorldlyConta
         return false;
     }
 
+
     public NonNullList<ItemStack> getItemStacks() {
 
         NonNullList<ItemStack> items = NonNullList.withSize(3, ItemStack.EMPTY);
@@ -187,11 +282,12 @@ public class ForgingAnvilBlockEntity extends BlockEntity implements WorldlyConta
 
     public void putItemInSlot(ItemStack stack,boolean isCreative,int slot){
         if (stack.isEmpty()){return;}
-        ItemStack itemStack = new ItemStack(stack.getItem(),1);
+        ItemStack itemPutIn = stack.copy();
+        itemPutIn.setCount(1);
         if (!isCreative){
             stack.shrink(1);
         }
-        this.itemStackHandler.setStackInSlot(slot, itemStack);
+        this.itemStackHandler.setStackInSlot(slot, itemPutIn);
 
     }
 
@@ -215,12 +311,17 @@ public class ForgingAnvilBlockEntity extends BlockEntity implements WorldlyConta
         return hasRecipe() && canInsertIntoOutputSlot();
     }
 
-    private boolean canInsert() {
-        return this.itemStackHandler.getStackInSlot(INPUT_SLOT).isEmpty();
-    }
-
     private boolean canInsertIntoOutputSlot() {
         return this.itemStackHandler.getStackInSlot(OUTPUT_SLOT).isEmpty();
+    }
+
+    private double getMaterialBrokenProbability(ItemStack inputStack){
+        CompoundTag nbt = inputStack.getOrCreateTag();
+        if (nbt.contains("refine_counts")){
+            return nbt.getInt("refine_counts") * Config.brokenProbabilityIncrease + Config.forgingBrokenProbability;
+        }else {
+            return 0;
+        }
     }
 
     @Override

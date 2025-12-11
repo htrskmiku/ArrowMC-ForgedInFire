@@ -13,5 +13,11 @@ public class ModItemModelGenerator extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
+        basicItem(ModRegister.HOT_IRON_ITEM.get());
+        basicItem(ModRegister.FORGING_PINCER.get());
+        basicItem(ModRegister.FORGING_SCRAP.get());
+        basicItem(ModRegister.FORGING_BASE_MATERIAL.get());
     }
+
+
 }

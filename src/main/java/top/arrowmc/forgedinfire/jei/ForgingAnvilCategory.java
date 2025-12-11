@@ -63,7 +63,7 @@ public class ForgingAnvilCategory implements IRecipeCategory<ForgingRecipe>{
     }
 
     public void addFailProbability(IRecipeExtrasBuilder builder,ForgingRecipe recipe){
-        double probability = recipe.getBrokenProbability();
+        int probability = (int) (recipe.getBrokenProbability() * 100);
         Component probabilityString = Component.translatable("gui.forgedinfire.jei.fail.probability", probability);
         builder.addText(probabilityString, getWidth() - 20, 10)
                 .setPosition(-5,-5,getWidth(),getHeight(), HorizontalAlignment.LEFT, VerticalAlignment.BOTTOM)
